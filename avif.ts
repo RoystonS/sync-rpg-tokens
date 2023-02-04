@@ -1,4 +1,3 @@
-import fs from 'fs';
 import sharp from 'sharp';
 
 const quality = 80;
@@ -19,7 +18,6 @@ export class AvifProcessor {
   public async getOriginalData() {
     if (!this.buffer) {
       this.buffer = await this.bufferRetriever();
-      await fs.promises.writeFile('test.png', this.buffer);
     }
     return this.buffer;
   }
