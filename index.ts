@@ -101,35 +101,39 @@ async function main() {
         continue;
       }
 
+      const avifFilename = newName.replace(/\.png$/, '.avif');
+
+      let proposedS3Filename = 'forgottenadventures/' + avifFilename;
+
+      // There are sometimes alternate versions of a token between one
+      // pack and another, so we'll rename the later ones to have an '_Alt' suffix
+
+      if (expectedS3Names.has(proposedS3Filename)) {
+        // const otherZip = expectedS3Names.get(s3Filename);
+        // console.warn(`Collision for destination ${s3Filename}: ${otherZip}`);
+        proposedS3Filename = proposedS3Filename.replace('.avif', '_Alt.avif');
+        // console.warn(` - renaming to ${s3Filename}`);
+
+        if (proposedS3Filename.includes('_Alt_Alt')) {
+          throw new Error('DOUBLE ALT!');
+        }
+      }
+
+      const s3Filename = proposedS3Filename;
+
+      expectedS3Names.set(s3Filename, fullFilename);
+
       await taskQueue.queue(async () => {
-        const avifFilename = newName.replace(/\.png$/, '.avif');
-
-        let s3Filename = 'forgottenadventures/' + avifFilename;
-
         const avifProcessor = new AvifProcessor(() => zip.entryData(name));
 
-        let avifSize = map.get(s3Filename);
+        const cacheKey = `${zipName}:${name}`;
+
+        let avifSize = map.get(cacheKey);
         if (!avifSize) {
           console.log(`Computing size for ${s3Filename}`);
           avifSize = await avifProcessor.getAvifSize();
-          await map.set(s3Filename, avifSize);
+          await map.set(cacheKey, avifSize);
         }
-
-        // There are sometimes alternate versions of a token between one
-        // pack and another, so we'll rename the later ones to have an '_Alt' suffix
-
-        if (expectedS3Names.has(s3Filename)) {
-          // const otherZip = expectedS3Names.get(s3Filename);
-          // console.warn(`Collision for destination ${s3Filename}: ${otherZip}`);
-          s3Filename = s3Filename.replace('.avif', '_Alt.avif');
-          // console.warn(` - renaming to ${s3Filename}`);
-
-          if (s3Filename.includes('_Alt_Alt')) {
-            throw new Error('DOUBLE ALT!');
-          }
-        }
-
-        expectedS3Names.set(s3Filename, fullFilename);
 
         let existingS3Entry = knownS3Objects.get(s3Filename);
 
