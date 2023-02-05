@@ -135,15 +135,16 @@ async function main() {
 
         // Standard S3 is $0.024/GB/month
         // IA is          $0.0131 per GB with a minimum size of 128KB
-        // so objects _nearly_ 128KB are worth putting in IA
+        // so objects _nearly_ 128KB are worth putting in IA (they're rounded to 128KB).
+        // The downside of IA is that IA objects incur retrieval charges and have a minimum storage duration of 30 days.
         // Objects bigger than than 128KB can go into intelligent tiering.
-        // Very small objects just stay in regular S3 (which we can do by setting to intelligent tiering, for consistency)
+        // Very small objects just stay in regular S3
         let storageClass = StorageClass.INTELLIGENT_TIERING;
         if (avifSize < 128 * 1024) {
           storageClass = StorageClass.ONEZONE_IA;
         }
         if (avifSize < 90 * 1024) {
-          storageClass = StorageClass.INTELLIGENT_TIERING;
+          storageClass = StorageClass.STANDARD;
         }
 
         if (existingS3Entry) {
