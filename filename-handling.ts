@@ -28,7 +28,11 @@ export function determineOutputFilename(filename: string): string | null {
   filename = filename.replace(/1⁄8/g, '1∕8');
   filename = filename.replace(/1⁄4/g, '1∕4');
   filename = filename.replace(/1⁄2/g, '1∕2');
+  // 'CR_x' instead of 'CR x'
   filename = filename.replace(/CR (.)/, (_, g) => `CR_${g[0]}`);
+  // Convert CR_2 into CR_02
+  filename = filename.replace(/CR_(\d)\//, (_, g) => `CR_0${g[0]}/`);
+
   filename = filename.replace('_Catch-All_Heroes', 'Catch-All_Heroes');
   filename = filename.replace(
     'Tokens/Spirits/Catch-All_Heroes_Spirits',

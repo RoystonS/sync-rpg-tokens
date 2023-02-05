@@ -29,7 +29,6 @@ export class Queue {
   };
 
   private informWaiters() {
-    console.log(`informWaiters; has ${this.newWaiters.size}`);
     const toRemove = new Set<Waiter>();
 
     for (const waiter of this.newWaiters) {
