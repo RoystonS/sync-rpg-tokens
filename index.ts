@@ -77,6 +77,11 @@ async function main() {
   const taskQueue = new TaskQueue(8);
 
   for (const zipName of await fs.promises.readdir(zipDir)) {
+    if (zipName.startsWith(".")) {
+      // macOS file
+      continue;
+    }
+
     const fullFilename = path.join(zipDir, zipName);
     const stat = await fs.promises.stat(fullFilename);
     if (!stat.isFile()) {
