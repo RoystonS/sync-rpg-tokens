@@ -18,7 +18,7 @@ import { AvifProcessor } from './avif.js';
 import { TaskQueue } from './task-queue.js';
 import { determineOutputFilename } from './filename-handling.js';
 
-import { awsAuthFile, bucketName, bucketPrefix, zipDir } from './config.js';
+import { awsAuthFile, bucketName, bucketPrefix, cpus, zipDir } from './config.js';
 
 async function main() {
   // To make synchronisation faster, we cache the computed sizes of
@@ -29,9 +29,7 @@ async function main() {
 
   AvifProcessor.setup();
 
-  const { accessKeyId, secretAccessKey, region } = JSON.parse(
-    await fs.promises.readFile(awsAuthFile, 'utf8')
-  );
+  const { accessKeyId, secretAccessKey, region } = JSON.parse(await fs.promises.readFile(awsAuthFile, 'utf8'));
 
   const credentials = {
     accessKeyId,
@@ -74,10 +72,10 @@ async function main() {
 
   console.log(`Total S3 contents: ${knownS3Objects.size}`);
 
-  const taskQueue = new TaskQueue(8);
+  const taskQueue = new TaskQueue(cpus * 2);
 
   for (const zipName of await fs.promises.readdir(zipDir)) {
-    if (zipName.startsWith(".")) {
+    if (zipName.startsWith('.')) {
       // macOS file
       continue;
     }
@@ -176,9 +174,7 @@ async function main() {
             console.log(
               `Need to change storage class for ${existingS3Entry.Key} (${avifSize} bytes) from ${existingS3Entry.StorageClass} to ${storageClass}`
             );
-            const copySource = `/${bucketName}/${encodeURIComponent(
-              existingS3Entry.Key!
-            )}`;
+            const copySource = `/${bucketName}/${encodeURIComponent(existingS3Entry.Key!)}`;
             await s3.send(
               new CopyObjectCommand({
                 CopySource: copySource,
@@ -192,9 +188,7 @@ async function main() {
           return;
         }
 
-        console.log(
-          `Need to upload ${name} (${await avifProcessor.getOriginalSize()}) as ${s3Filename} (${avifSize})`
-        );
+        console.log(`Need to upload ${name} (${await avifProcessor.getOriginalSize()}) as ${s3Filename} (${avifSize})`);
 
         const extname = path.extname(s3Filename);
         let contentType;

@@ -1,5 +1,7 @@
 import sharp from 'sharp';
 
+import { cpus } from './config.js';
+
 const quality = 80;
 
 export class AvifProcessor {
@@ -8,7 +10,7 @@ export class AvifProcessor {
   private avif: Buffer | undefined;
 
   public static setup() {
-    sharp.concurrency(8);
+    sharp.concurrency(cpus * 2);
   }
 
   public constructor(bufferRetriever: () => Promise<Buffer>) {

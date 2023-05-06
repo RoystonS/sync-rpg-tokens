@@ -55,10 +55,7 @@ export class Queue {
 }
 
 class Waiter {
-  public constructor(
-    public readonly condition: (q: Queue) => boolean,
-    public readonly resolver: () => void
-  ) {}
+  public constructor(public readonly condition: (q: Queue) => boolean, public readonly resolver: () => void) {}
 }
 
 export interface ILease {

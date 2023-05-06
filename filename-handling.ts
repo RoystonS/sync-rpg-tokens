@@ -7,22 +7,10 @@ export function determineOutputFilename(filename: string): string | null {
   }
 
   filename = filename.replace(/^FA_Tokens\//, 'Tokens/');
-  filename = filename.replace(
-    /Tokens\/Spirits\/Creature[ _]Spirits_Pack_\d+/,
-    'Tokens/Spirits/Creatures'
-  );
-  filename = filename.replace(
-    'Spirits/Creature_Spirits/',
-    'Spirits/Creatures/'
-  );
-  filename = filename.replace(
-    /Spirits\/Spirits_(Adversaries|Creatures|Heroes|NPCs)\//,
-    (_, g) => `Spirits/${g}/`
-  );
-  filename = filename.replace(
-    'Spirits/Commoner_Spirits/',
-    'Spirits/Commoners/'
-  );
+  filename = filename.replace(/Tokens\/Spirits\/Creature[ _]Spirits_Pack_\d+/, 'Tokens/Spirits/Creatures');
+  filename = filename.replace('Spirits/Creature_Spirits/', 'Spirits/Creatures/');
+  filename = filename.replace(/Spirits\/Spirits_(Adversaries|Creatures|Heroes|NPCs)\//, (_, g) => `Spirits/${g}/`);
+  filename = filename.replace('Spirits/Commoner_Spirits/', 'Spirits/Commoners/');
   filename = filename.replace('Creature Tokens Pack 2/', 'Tokens/');
 
   filename = filename.replace(/1⁄8/g, '1∕8');
@@ -34,10 +22,7 @@ export function determineOutputFilename(filename: string): string | null {
   filename = filename.replace(/CR_(\d)\//, (_, g) => `CR_0${g[0]}/`);
 
   filename = filename.replace('_Catch-All_Heroes', 'Catch-All_Heroes');
-  filename = filename.replace(
-    'Tokens/Spirits/Catch-All_Heroes_Spirits',
-    'Tokens/Spirits/Catch-All_Heroes'
-  );
+  filename = filename.replace('Tokens/Spirits/Catch-All_Heroes_Spirits', 'Tokens/Spirits/Catch-All_Heroes');
 
   // Tokens/NPCs/Townsfolk_02/Townsfolk_AA1_01.png
   filename = filename.replace(/Townsfolk_(\d+)/, 'Townsfolk');
