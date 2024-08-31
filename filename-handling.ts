@@ -42,7 +42,7 @@ export function determineOutputFilename(filename: string): string | null {
     'Tokens/Creatures/CR_unknown/',
     /^Tokens\/Creatures\/(Aberration|Beast|Celestial|Construct|Dragon|Elemental|Fey|Fiend|Giant|Guards_Desert|Humanoid|Monstrosity|Ooze|Plant|Undead)\//,
     /^Tokens\/Spirits\/(Adversaries|Catch-All_Heroes|Commoners|Creatures|Heroes|NPCs)\//,
-    /^Tokens\/Heroes\/(Bearfolk|Catch-All_Heroes|Dragonborn|Dwarf|Elf|Firbolg|Gnome|Goliath|Halfling|Half_Elf|Half_Orc|Human|Gnoll|Kenku|Kitsune|Planetouched|Tabaxi|Tiefling|Tortle|Trollkin|Warforged)\//,
+    /^Tokens\/Heroes\/([A-Z][a-z]+folk|Catch-All_Heroes|Dragonborn|Dwarf|Elf|Firbolg|Froglin|Gnome|Goliath|Halfling|Half_Elf|Half_Orc|Human|Gnoll|Kenku|Kitsune|Planetouched|Tabaxi|Tiefling|Tortle|Trollkin|Warforged)\//,
     /^Tokens\/NPCs\/(Commoners|Townsfolk)\//,
     'Tokens/Spirits/Catch-All_Heroes_Spirits/',
   ];
