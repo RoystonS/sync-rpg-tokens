@@ -29,7 +29,10 @@ async function main() {
 
   AvifProcessor.setup();
 
-  const { accessKeyId, secretAccessKey, region } = JSON.parse(await fs.promises.readFile(awsAuthFile, 'utf8'));
+  const {
+    credentials: { accessKeyId, secretAccessKey },
+    region,
+  } = JSON.parse(await fs.promises.readFile(awsAuthFile, 'utf8'));
 
   const credentials = {
     accessKeyId,

@@ -5,8 +5,8 @@ import os from 'os';
 // as used by Foundry VTT.
 export const awsAuthFile = findFirst([
   'awsconfig.json',
-  'Y:/foundry/foundrydata/Config/awsconfig.json',
-  '/home/royston/foundry/foundrydata/Config/awsconfig.json',
+  'Y:/foundry11/foundrydata/Config/awsconfig.json',
+  '/home/royston/foundry11/foundrydata/Config/awsconfig.json',
 ]);
 
 // S3 bucket name
