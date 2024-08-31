@@ -60,7 +60,7 @@ async function main() {
         Bucket: bucketName,
         Prefix: bucketPrefix,
         ContinuationToken: pageToken,
-      })
+      }),
     );
 
     if (s3Contents.Contents) {
@@ -161,13 +161,13 @@ async function main() {
         if (existingS3Entry) {
           if (avifSize !== existingS3Entry.Size) {
             console.log(
-              `Wrong version of file at ${existingS3Entry.Key} (local ${avifSize} bytes vs uploaded ${existingS3Entry.Size}). Deleting and reuploading.`
+              `Wrong version of file at ${existingS3Entry.Key} (local ${avifSize} bytes vs uploaded ${existingS3Entry.Size}). Deleting and reuploading.`,
             );
             await s3.send(
               new DeleteObjectCommand({
                 Bucket: bucketName,
                 Key: existingS3Entry.Key,
-              })
+              }),
             );
             existingS3Entry = undefined;
           }
@@ -176,7 +176,7 @@ async function main() {
         if (existingS3Entry) {
           if (storageClass !== existingS3Entry.StorageClass) {
             console.log(
-              `Need to change storage class for ${existingS3Entry.Key} (${avifSize} bytes) from ${existingS3Entry.StorageClass} to ${storageClass}`
+              `Need to change storage class for ${existingS3Entry.Key} (${avifSize} bytes) from ${existingS3Entry.StorageClass} to ${storageClass}`,
             );
             const copySource = `/${bucketName}/${encodeURIComponent(existingS3Entry.Key!)}`;
             await s3.send(
@@ -186,7 +186,7 @@ async function main() {
                 Key: s3Filename,
                 StorageClass: storageClass,
                 MetadataDirective: 'COPY',
-              })
+              }),
             );
           }
           return;
@@ -247,7 +247,7 @@ async function main() {
         new DeleteObjectCommand({
           Bucket: bucketName,
           Key: existingS3Name,
-        })
+        }),
       );
     }
   }
