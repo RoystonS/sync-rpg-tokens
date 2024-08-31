@@ -1,30 +1,34 @@
 export class Queue {
   private activeCount = 0;
-  private maximum: number;
   private readonly newWaiters = new Set<Waiter>();
 
-  public constructor(maximum = 10) {
-    this.maximum = maximum;
-  }
+  public constructor(private readonly maximum = 10, public readonly name = '') {}
 
-  public async takeLease() {
-    await this.waitFor((q) => q.activeCount < q.maximum);
+  public async takeLease(count = 1) {
+    await this.waitFor(
+      (q) => q.activeCount === 0 || q.activeCount + count <= q.maximum,
+      () => {
+        this.activeCount += count;
+      }
+    );
 
-    this.activeCount++;
     this.informWaiters();
 
     const lease: ILease = {
-      release: this.releaseLease,
+      release: () => this.releaseLease(count),
     };
     return lease;
   }
 
   public async waitForEmpty() {
-    await this.waitFor((q) => q.activeCount === 0);
+    await this.waitFor((q) => {
+      console.log(this.name, 'waitForEmpty...', q.activeCount);
+      return q.activeCount === 0;
+    });
   }
 
-  private readonly releaseLease = () => {
-    this.activeCount--;
+  private readonly releaseLease = (count: number) => {
+    this.activeCount -= count;
     this.informWaiters();
   };
 
@@ -34,6 +38,7 @@ export class Queue {
     for (const waiter of this.newWaiters) {
       if (waiter.condition(this)) {
         toRemove.add(waiter);
+        waiter.onConditionFulfilled?.();
         waiter.resolver();
       }
     }
@@ -43,8 +48,9 @@ export class Queue {
     }
   }
 
-  private async waitFor(condition: (q: Queue) => boolean): Promise<void> {
+  private async waitFor(condition: (q: Queue) => boolean, onConditionFulfilled?: () => void): Promise<void> {
     if (condition(this)) {
+      onConditionFulfilled?.();
       return;
     }
 
@@ -55,7 +61,11 @@ export class Queue {
 }
 
 class Waiter {
-  public constructor(public readonly condition: (q: Queue) => boolean, public readonly resolver: () => void) {}
+  public constructor(
+    public readonly condition: (q: Queue) => boolean,
+    public readonly resolver: () => void,
+    public readonly onConditionFulfilled?: () => void
+  ) {}
 }
 
 export interface ILease {

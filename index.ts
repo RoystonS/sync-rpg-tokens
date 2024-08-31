@@ -75,7 +75,8 @@ async function main() {
 
   console.log(`Total S3 contents: ${knownS3Objects.size}`);
 
-  const taskQueue = new TaskQueue(cpus * 2);
+  const taskQueue = new TaskQueue(cpus * 2, 'compression queue');
+  const uploadQueue = new TaskQueue(1_000_000, 'upload queue');
 
   for (const zipName of await fs.promises.readdir(zipDir)) {
     if (zipName.startsWith('.')) {
@@ -149,7 +150,7 @@ async function main() {
         // The downside of IA is that IA objects incur retrieval charges and have a minimum storage duration of 30 days.
         // Objects bigger than than 128KB can go into intelligent tiering.
         // Very small objects just stay in regular S3
-        let storageClass = StorageClass.INTELLIGENT_TIERING;
+        let storageClass: StorageClass = StorageClass.INTELLIGENT_TIERING;
         if (avifSize < 128 * 1024) {
           storageClass = StorageClass.ONEZONE_IA;
         }
@@ -193,39 +194,50 @@ async function main() {
 
         console.log(`Need to upload ${name} (${await avifProcessor.getOriginalSize()}) as ${s3Filename} (${avifSize})`);
 
-        const extname = path.extname(s3Filename);
-        let contentType;
-        switch (extname) {
-          case '.png':
-            contentType = 'image/png';
-            break;
-          case '.avif':
-            contentType = 'image/avif';
-            break;
-          default:
-            throw Error(`What content-type for ${s3Filename}?`);
-        }
+        await uploadQueue.queue(async () => {
+          console.log(`Uploading ${name} (${await avifProcessor.getOriginalSize()}) as ${s3Filename} (${avifSize})`);
 
-        const avifContent = await avifProcessor.getAvif();
+          const extname = path.extname(s3Filename);
+          let contentType;
+          switch (extname) {
+            case '.png':
+              contentType = 'image/png';
+              break;
+            case '.avif':
+              contentType = 'image/avif';
+              break;
+            default:
+              throw Error(`What content-type for ${s3Filename}?`);
+          }
 
-        await s3.send(
-          new PutObjectCommand({
-            Bucket: bucketName,
-            Key: s3Filename,
-            Body: avifContent,
-            StorageClass: storageClass,
-            ContentType: contentType,
-            CacheControl: 's-max-age: 31536000, max-age: 31536000, immutable',
-          })
-        );
+          const avifContent = await avifProcessor.getAvif();
+
+          await s3.send(
+            new PutObjectCommand({
+              Bucket: bucketName,
+              Key: s3Filename,
+              Body: avifContent,
+              StorageClass: storageClass,
+              ContentType: contentType,
+              CacheControl: 's-max-age: 31536000, max-age: 31536000, immutable',
+            }),
+          );
+          console.log(`Upload of ${name} complete`);
+        }, avifSize!);
       });
     }
 
+    console.log('Waiting for task queue to empty');
     await taskQueue.waitForEmpty();
+    console.log('Waiting for upload queue to empty');
+    await uploadQueue.waitForEmpty();
     zip.close();
   }
 
+  console.log('Waiting for recompressions to complete');
   await taskQueue.waitForEmpty();
+  console.log('Waiting for uploads to complete');
+  await uploadQueue.waitForEmpty();
 
   // Check to see if there are S3 objects that shouldn't be there.
   for (const existingS3Name of knownS3Objects.keys()) {
