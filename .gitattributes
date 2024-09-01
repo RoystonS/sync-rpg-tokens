@@ -1,1 +1,1 @@
-cached-avifsizes.txt filter=lfs diff=lfstext merge=lfs text
+cached-avifsizes.txt filter=lfs diff=lfstext merge=lfs -text
