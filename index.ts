@@ -20,12 +20,15 @@ import { determineOutputFilename } from './filename-handling.js';
 
 import { awsAuthFile, bucketName, bucketPrefix, cpus, zipDir } from './config.js';
 
+const cacheFilename = 'cached-avifsizes.txt';
+
 async function main() {
   // To make synchronisation faster, we cache the computed sizes of
   // AVIFs for each file in a persistent map
-  const map = new PersistentMap<string, number>('cached-avifsizes.txt');
+  const map = new PersistentMap<string, number>(cacheFilename);
   await map.load();
-  await map.compact();
+
+  await regenerateCacheFile(map);
 
   AvifProcessor.setup();
 
@@ -76,13 +79,15 @@ async function main() {
   console.log(`Total S3 contents: ${knownS3Objects.size}`);
 
   const taskQueue = new TaskQueue(cpus * 2, 'compression queue');
-  const uploadQueue = new TaskQueue(1_000_000, 'upload queue');
+  const uploadQueue = new TaskQueue(5_000_000, 'upload queue');
 
   for (const zipName of await fs.promises.readdir(zipDir)) {
     if (zipName.startsWith('.')) {
       // macOS file
       continue;
     }
+
+    let madeChanges = false;
 
     const fullFilename = path.join(zipDir, zipName);
     const stat = await fs.promises.stat(fullFilename);
@@ -135,12 +140,22 @@ async function main() {
 
         const cacheKey = `${zipName}:${name}`;
 
-        let avifSize = map.get(cacheKey);
-        if (!avifSize) {
+        let avifSize: number | undefined;
+
+        async function checkAvifSize() {
+          let size = map.get(cacheKey);
+          if (!size) {
           console.log(`Computing size for ${s3Filename}`);
-          avifSize = await avifProcessor.getAvifSize();
-          await map.set(cacheKey, avifSize);
+            const start = Date.now();
+            size = await avifProcessor.getAvifSize();
+            const end = Date.now();
+            console.log(` computation of size for ${s3Filename} (${size} took ${end - start})`);
+            madeChanges = true;
+            await map.set(cacheKey, size);
+          }
+          return size;
         }
+        avifSize = await checkAvifSize();
 
         let existingS3Entry = knownS3Objects.get(s3Filename);
 
@@ -163,6 +178,9 @@ async function main() {
             console.log(
               `Wrong version of file at ${existingS3Entry.Key} (local ${avifSize} bytes vs uploaded ${existingS3Entry.Size}). Deleting and reuploading.`,
             );
+            map.delete(cacheKey);
+            avifSize = await checkAvifSize();
+
             await s3.send(
               new DeleteObjectCommand({
                 Bucket: bucketName,
@@ -231,7 +249,12 @@ async function main() {
     await taskQueue.waitForEmpty();
     console.log('Waiting for upload queue to empty');
     await uploadQueue.waitForEmpty();
-    zip.close();
+
+    await zip.close();
+
+    if (madeChanges) {
+      await regenerateCacheFile(map);
+    }
   }
 
   console.log('Waiting for recompressions to complete');
@@ -251,6 +274,20 @@ async function main() {
       );
     }
   }
+}
+
+async function regenerateCacheFile(map: PersistentMap<string, number>) {
+  console.log('compacting map');
+  await map.compact();
+
+  const mapJson = await fs.promises.readFile(cacheFilename, 'utf8');
+  const mapLines = mapJson.split('\n').filter((l) => l.length > 0);
+  mapLines.sort((a, b) => a.localeCompare(b, ['en-GB']));
+  const cacheTmp = cacheFilename + '.tmp';
+  await fs.promises.writeFile(cacheTmp, mapLines.join('\n'), 'utf8');
+  await fs.promises.rename(cacheTmp, cacheFilename);
+
+  await map.load();
 }
 
 void main();
